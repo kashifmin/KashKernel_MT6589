@@ -383,6 +383,7 @@ asmlinkage void __exception do_undefinstr(struct pt_regs *regs)
 {
 	struct thread_info *thread = current_thread_info();
 	unsigned int correction = thumb_mode(regs) ? 2 : 4;
+
 	unsigned int instr;
 	siginfo_t info;
 	void __user *pc;
