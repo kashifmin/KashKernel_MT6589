@@ -663,6 +663,7 @@ static ssize_t __write_ports_addfd(char *buf)
 	err = svc_addsock(nfsd_serv, fd, buf, SIMPLE_TRANSACTION_LIMIT);
 	if (err < 0) {
 		svc_destroy(nfsd_serv);
+		nfsd_destroy(net);
 		return err;
 	}
 
@@ -731,6 +732,7 @@ out_close:
 	}
 out_err:
 	svc_destroy(nfsd_serv);
+	nfsd_destroy(net);
 	return err;
 }
 
