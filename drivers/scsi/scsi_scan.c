@@ -1732,6 +1732,9 @@ static void scsi_sysfs_add_devices(struct Scsi_Host *shost)
 		//10f8d5b86743b33d841a175303e2bf67fd620f42
 		//ALPS00445134, add Linux commit for SCSI
 
+		/* target removed before the device could be added */
+		if (sdev->sdev_state == SDEV_DEL)
+			continue;
 		if (!scsi_host_scan_allowed(shost) ||
 		    scsi_sysfs_add_sdev(sdev) != 0)
 			__scsi_remove_device(sdev);

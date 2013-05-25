@@ -975,11 +975,8 @@ void __scsi_remove_device(struct scsi_device *sdev)
 		sdev->host->hostt->slave_destroy(sdev);
 	transport_destroy_device(dev);
 
-	/* cause the request function to reject all I/O requests */
-	sdev->request_queue->queuedata = NULL;
-
 	/* Freeing the queue signals to block that we're done */
-	scsi_free_queue(sdev->request_queue);
+	blk_cleanup_queue(sdev->request_queue);
 	put_device(dev);
 }
 
@@ -1037,6 +1034,7 @@ static int __remove_child (struct device * dev, void * data)
 	//10f8d5b86743b33d841a175303e2bf67fd620f42
 	//ALPS00445134, add Linux commit for SCSI
 
+
 }
 
 /**
@@ -1086,6 +1084,24 @@ void scsi_remove_target(struct device *dev)
 	put_device(dev);
 	#endif
 
+	struct Scsi_Host *shost = dev_to_shost(dev->parent);
+	struct scsi_target *starget, *found;
+	unsigned long flags;
+
+ restart:
+	found = NULL;
+	spin_lock_irqsave(shost->host_lock, flags);
+	list_for_each_entry(starget, &shost->__targets, siblings) {
+		if (starget->state == STARGET_DEL)
+			continue;
+		if (starget->dev.parent == dev || &starget->dev == dev) {
+			found = starget;
+			found->reap_ref++;
+			break;
+		}
+	}
+	spin_unlock_irqrestore(shost->host_lock, flags);
+
 	if (found) {
 		__scsi_remove_target(found);
 		scsi_target_reap(found);
@@ -1096,8 +1112,10 @@ void scsi_remove_target(struct device *dev)
 		 */
 		goto restart;
 	}
+
 	//10f8d5b86743b33d841a175303e2bf67fd620f42
 	//ALPS00445134, add Linux commit for SCSI
+
 }
 EXPORT_SYMBOL(scsi_remove_target);
 
