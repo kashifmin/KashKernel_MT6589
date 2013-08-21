@@ -4,6 +4,7 @@
  * Derived from arch/i386/kernel/semaphore.c
  *
  * Writer lock-stealing by Alex Shi <alex.shi@intel.com>
+ * and Michel Lespinasse <walken@google.com>
  */
 #include <linux/rwsem.h>
 #include <linux/sched.h>
@@ -222,9 +223,7 @@ struct rw_semaphore __sched *rwsem_down_write_failed(struct rw_semaphore *sem)
 			count = RWSEM_ACTIVE_WRITE_BIAS;
 			if (!list_is_singular(&sem->wait_list))
 				count += RWSEM_WAITING_BIAS;
-
-			if (sem->count == RWSEM_WAITING_BIAS &&
-			    cmpxchg(&sem->count, RWSEM_WAITING_BIAS, count) ==
+			if (cmpxchg(&sem->count, RWSEM_WAITING_BIAS, count) ==
 							RWSEM_WAITING_BIAS)
 				break;
 		}

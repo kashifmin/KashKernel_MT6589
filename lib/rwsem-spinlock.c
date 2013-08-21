@@ -78,7 +78,7 @@ __rwsem_do_wake(struct rw_semaphore *sem, int wakewrite)
 		goto out;
 	}
 
-	/* grant read locks to all queued readers. */
+	/* grant an infinite number of read locks to the front of the queue */
 	woken = 0;
 	do {
 		struct list_head *next = waiter->list.next;
@@ -235,8 +235,8 @@ int __down_write_trylock(struct rw_semaphore *sem)
 
 	raw_spin_lock_irqsave(&sem->wait_lock, flags);
 
-	if (sem->activity == 0 && list_empty(&sem->wait_list)) {
-		/* granted */
+	if (sem->activity == 0) {
+		/* got the lock */
 		sem->activity = -1;
 		ret = 1;
 	}
