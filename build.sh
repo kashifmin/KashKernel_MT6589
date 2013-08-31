@@ -18,11 +18,11 @@ rm $OUT_DIRECTORY/* -R
 fi
 
 #Kernel part
-TARGET_BUILD_VARIANT=user make -j2
+TARGET_BUILD_VARIANT=user make -j4
 ../mediatek/build/tools/mkimage arch/arm/boot/zImage KERNEL > $OUT_DIRECTORY/zImage
 
 #Modules part
-make TARGET_BUILD_VARIANT=user INSTALL_MOD_STRIP=1 INSTALL_MOD_PATH=$OUT_DIRECTORY/system INSTALL_MOD_DIR=$OUT_DIRECTORY/system android_modules_install
+make TARGET_BUILD_VARIANT=user INSTALL_MOD_STRIP=--strip-unneeded INSTALL_MOD_PATH=$OUT_DIRECTORY/system INSTALL_MOD_DIR=$OUT_DIRECTORY/system android_modules_install
 
 #Repack part
 if [ -d "$RAMDISK_DIRECTORY" ]; then
