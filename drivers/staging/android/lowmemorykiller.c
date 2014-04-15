@@ -75,7 +75,7 @@ static struct task_struct *lowmem_deathpending;
 static unsigned long lowmem_deathpending_timeout;
 
 #define lowmem_print(level, x...)			\
-	do {						\
+	for_each_thread(p,t) {						\
 		if (lowmem_debug_level >= (level))	\
 			printk(x);			\
 	} while (0)
