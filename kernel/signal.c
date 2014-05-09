@@ -1946,7 +1946,7 @@ static void ptrace_stop(int exit_code, int why, int clear_code, siginfo_t *info)
 	 * Now that we woke up, it's crucial if we're supposed to be
 	 * frozen that we freeze now before running anything substantial.
 	 */
-	try_to_freeze();
+	try_to_freeze_nowarn();
 
 	/*
 	 * We are back.  Now reacquire the siglock before touching
