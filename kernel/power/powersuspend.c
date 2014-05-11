@@ -139,9 +139,6 @@ void set_power_suspend_state(int new_state)
 
 	spin_lock_irqsave(&state_lock, irqflags);
 	old_sleep = state;
-	if (!old_sleep && new_state == 1) {
-		queue_work(suspend_work_queue, &power_suspend_work);
-	} else if (!old_sleep || new_state == 0) {
 	if (old_sleep == POWER_SUSPEND_INACTIVE && new_state == POWER_SUSPEND_ACTIVE) {
 #ifdef POWER_SUSPEND_DEBUG
 		pr_warn("power_suspend: activated.\n");
@@ -174,15 +171,10 @@ static ssize_t power_suspend_state_show(struct kobject *kobj,
         return sprintf(buf, "%u\n", state);
 }
 
-
-static ssize_t power_suspend_store(struct kobject *kobj,
 static ssize_t power_suspend_state_store(struct kobject *kobj,
 		struct kobj_attribute *attr, const char *buf, size_t count)
 {
 	int data = 0;
-
-
-	sscanf(buf, "%u\n", &data);
 
 	if (mode != POWER_SUSPEND_USERSPACE) // Yank555.lu : Only allow sysfs changes in userspace mode
 		return -EINVAL;
@@ -195,11 +187,6 @@ static ssize_t power_suspend_state_store(struct kobject *kobj,
 	}
 	return count;
 }
-
-static struct kobj_attribute power_suspend_attribute =
-	__ATTR(power_suspend_state, 0444,
-		power_suspend_show,
-		NULL);
 
 static struct kobj_attribute power_suspend_state_attribute =
 	__ATTR(power_suspend_state, 0666,
