@@ -39,13 +39,6 @@
 #include <linux/rcupdate.h>
 #include <linux/sched.h>
 #include <linux/notifier.h>
-#include <linux/mutex.h>
-#include <linux/delay.h>
-#include <linux/swap.h>
-#include <linux/fs.h>
-#include <linux/powersuspend.h>
-
-#include <trace/events/memkill.h>
 
 #if defined (CONFIG_MTK_AEE_FEATURE) && defined (CONFIG_MT_ENG_BUILD)
 #include <linux/aee.h>
@@ -64,45 +57,19 @@ static uint32_t lowmem_debug_adj = 1;
 #endif
 static DEFINE_SPINLOCK(lowmem_shrink_lock);
 static int lowmem_adj[6] = {
-static uint32_t lowmem_debug_level = 1;
-static uint32_t lowmem_auto_oom = 1;
-static short lowmem_adj[6] = {
 	0,
 	1,
 	6,
 	12,
-	13,
-	15,
 };
-static int lowmem_adj_size = 6;
+static int lowmem_adj_size = 4;
 static int lowmem_minfree[6] = {
 	3 * 512,	/* 6MB */
 	2 * 1024,	/* 8MB */
 	4 * 1024,	/* 16MB */
 	16 * 1024,	/* 64MB */
-	20 * 1024,	/* 80MB */
-	28 * 1024,	/* 112MB */
 };
 static int lowmem_minfree_size = 4;
-
-static int lowmem_minfree_screen_off[6] = {
-	3 * 512,	/* 6MB */
-	2 * 1024,	/* 8MB */
-	4 * 1024,	/* 16MB */
-	16 * 1024,	/* 64MB */
-	20 * 1024,	/* 80MB */
-	28 * 1024,	/* 112MB */
-};
-static int lowmem_minfree_screen_on[6] = {
-	3 * 512,	/* 6MB */
-	2 * 1024,	/* 8MB */
-	4 * 1024,	/* 16MB */
-	16 * 1024,	/* 64MB */
-	20 * 1024,	/* 80MB */
-	28 * 1024,	/* 112MB */
-};
-static int lowmem_minfree_size = 6;
-static int lmk_fast_run = 1;
 
 static struct task_struct *lowmem_deathpending;
 static unsigned long lowmem_deathpending_timeout;
@@ -324,48 +291,6 @@ static struct shrinker lowmem_shrinker = {
 static int __init lowmem_init(void)
 {
     task_free_register(&task_nb);
-
-#ifdef CONFIG_ANDROID_BG_SCAN_MEM
-static int lmk_task_migration_notify(struct notifier_block *nb,
-					unsigned long data, void *arg)
-{
-	struct shrink_control sc = {
-		.gfp_mask = GFP_KERNEL,
-		.nr_to_scan = 1,
-	};
-
-	lowmem_shrink(&lowmem_shrinker, &sc);
-
-	return NOTIFY_OK;
-}
-
-static struct notifier_block tsk_migration_nb = {
-	.notifier_call = lmk_task_migration_notify,
-};
-#endif
-
-static void low_mem_power_suspend(struct power_suspend *handler)
-{
-	if (lowmem_auto_oom) {
-		memcpy(lowmem_minfree_screen_on, lowmem_minfree, sizeof(lowmem_minfree));
-		memcpy(lowmem_minfree, lowmem_minfree_screen_off, sizeof(lowmem_minfree_screen_off));
-	}
-}
-
-static void low_mem_late_resume(struct power_suspend *handler)
-{
-	if (lowmem_auto_oom)
-		memcpy(lowmem_minfree, lowmem_minfree_screen_on, sizeof(lowmem_minfree_screen_on));
-}
-
-static struct power_suspend low_mem_suspend = {
-	.suspend = low_mem_power_suspend,
-	.resume = low_mem_late_resume,
-};
-
-static int __init lowmem_init(void)
-{
-	register_power_suspend(&low_mem_suspend);
 	register_shrinker(&lowmem_shrinker);
 	return 0;
 }
@@ -448,19 +373,9 @@ size_t query_lmk_minfree(int index)
 EXPORT_SYMBOL(query_lmk_minfree);
 
 module_param_named(cost, lowmem_shrinker.seeks, int, S_IRUGO | S_IWUSR);
-
-#ifdef CONFIG_ANDROID_LOW_MEMORY_KILLER_AUTODETECT_OOM_ADJ_VALUES
-__module_param_call(MODULE_PARAM_PREFIX, adj,
-		    &lowmem_adj_array_ops,
-		    .arr = &__param_arr_adj,
-		    S_IRUGO | S_IWUSR, 0664);
-__MODULE_PARM_TYPE(adj, "array of int");
-#else
 module_param_array_named(adj, lowmem_adj, int, &lowmem_adj_size,
 			 S_IRUGO | S_IWUSR);
 module_param_array_named(minfree, lowmem_minfree, uint, &lowmem_minfree_size,
-			 S_IRUGO | S_IWUSR);
-module_param_array_named(minfree_screen_off, lowmem_minfree_screen_off, uint, &lowmem_minfree_size,
 			 S_IRUGO | S_IWUSR);
 module_param_named(debug_level, lowmem_debug_level, uint, S_IRUGO | S_IWUSR);
 #if defined (CONFIG_MTK_AEE_FEATURE) && defined (CONFIG_MT_ENG_BUILD)
@@ -469,9 +384,6 @@ module_param_named(lowmem_indicator, lowmem_indicator, uint, S_IRUGO | S_IWUSR);
 #ifdef CONFIG_MT_ENG_BUILD
 module_param_named(debug_adj, lowmem_debug_adj, uint, S_IRUGO | S_IWUSR);
 #endif
-
-module_param_named(auto_oom, lowmem_auto_oom, uint, S_IRUGO | S_IWUSR);
-module_param_named(lmk_fast_run, lmk_fast_run, int, S_IRUGO | S_IWUSR);
 
 module_init(lowmem_init);
 module_exit(lowmem_exit);
