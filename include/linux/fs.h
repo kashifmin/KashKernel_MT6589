@@ -545,10 +545,6 @@ struct iov_iter {
 	size_t count;
 };
 
-size_t iov_iter_copy_to_user_atomic(struct page *page,
-		struct iov_iter *i, unsigned long offset, size_t bytes);
-size_t iov_iter_copy_to_user(struct page *page,
-		struct iov_iter *i, unsigned long offset, size_t bytes);
 size_t iov_iter_copy_from_user_atomic(struct page *page,
 		struct iov_iter *i, unsigned long offset, size_t bytes);
 size_t iov_iter_copy_from_user(struct page *page,
@@ -1647,18 +1643,6 @@ struct file_operations {
 	long (*fallocate)(struct file *file, int mode, loff_t offset,
 			  loff_t len);
 };
-
-static inline int file_readable(struct file *filp)
-{
-	return filp && (filp->f_op->read || filp->f_op->aio_read ||
-			filp->f_op->read_iter);
-}
-
-static inline int file_writable(struct file *filp)
-{
-	return filp && (filp->f_op->write || filp->f_op->aio_write ||
-			filp->f_op->write_iter);
-}
 
 struct inode_operations {
 	struct dentry * (*lookup) (struct inode *,struct dentry *, struct nameidata *);
