@@ -49,7 +49,7 @@
 extern struct tpd_device *tpd;
  
 static DECLARE_WAIT_QUEUE_HEAD(waiter);
-static int s2w_st_flag=0; //s2w
+//static int s2w_st_flag=0; //s2w
 static void tpd_eint_interrupt_handler(void);
  extern void mt65xx_eint_unmask(unsigned int line);
  extern void mt65xx_eint_mask(unsigned int line);
@@ -162,7 +162,7 @@ static  void tpd_down(tinno_ts_data *ts, int x, int y, int pressure, int trackID
        printk("[SWEEP2WAKE]: tpd down\n");
 #ifdef CONFIG_TOUCHSCREEN_SWEEP2WAKE
 		if (sweep2wake) {
-printk("[SWEEP2WAKE]: detecting sweep\n");
+//printk("[SWEEP2WAKE]: detecting sweep\n");
 			detect_sweep2wake(x, y, jiffies, trackID);
 		}
 #endif
@@ -195,13 +195,13 @@ static  int tpd_up(tinno_ts_data *ts, int x, int y, int pressure, int trackID)
         input_mt_sync(tpd->dev);
         __clear_bit(trackID, &ts->fingers_flag);
 
-printk("[SWEEP2WAKE]: inside tpd up\n");
+//printk("[SWEEP2WAKE]: inside tpd up\n");
 #ifdef CONFIG_TOUCHSCREEN_SWEEP2WAKE
 s2w_st_flag = 0;
 				if (sweep2wake > 0) {
-					printk("[sweep2wake]:line : %d | func : %s\n", __LINE__, __func__);
-printk("[SWEEP2WAKE]: resetin s2w param\n");
-					printk("[sweep2wake]:line : %d | func : %s\n", __LINE__, __func__);
+					//printk("[sweep2wake]:line : %d | func : %s\n", __LINE__, __func__);
+//printk("[SWEEP2WAKE]: resetin s2w param\n");
+					//printk("[sweep2wake]:line : %d | func : %s\n", __LINE__, __func__);
 					exec_count = true;
 					barrier[0] = false;
 					barrier[1] = false;
@@ -537,25 +537,6 @@ void fts_5x06_hw_reset(void)
 	mdelay(1);
 }
 
-#ifdef CONFIG_TOUCHSCREEN_SWEEP2WAKE
-/* gives back true if only one touch is recognized */
-bool is_single_touch(void)
-{
-	/*int i = 0, cnt = 0;
-
-	for( i= 0; i<MAX_NUM_FINGER; i++ ) {
-		if ((!fingerInfo[i].status) ||
-				(fingerInfo[i].status == TOUCH_EVENT_RELEASE))
-		continue;
-		else cnt++;
-	}*/
-printk("[SWEEP2WAKE]: inside single touch\n");
-	if (s2w_st_flag == 1)
-	return true;
-	else
-	return false;
-}
-#endif
 
 
 static void fts_5x06_hw_init(void)

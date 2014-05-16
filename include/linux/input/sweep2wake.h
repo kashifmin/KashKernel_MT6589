@@ -27,6 +27,7 @@
 //#include <linux/input/lge_touch_core.h>
 
 extern int sweep2wake;
+extern int s2w_st_flag;
 extern int doubletap2wake;
 extern bool scr_suspended;
 extern bool scr_on_touch;
