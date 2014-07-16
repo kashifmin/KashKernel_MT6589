@@ -18,6 +18,7 @@ rm $OUT_DIRECTORY/* -R
 fi
 
 #Kernel part
+make kk_defconfig
 TARGET_BUILD_VARIANT=user make -j4
 ../mediatek/build/tools/mkimage arch/arm/boot/zImage KERNEL > $OUT_DIRECTORY/zImage
 
