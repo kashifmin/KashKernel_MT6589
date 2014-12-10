@@ -21,8 +21,11 @@
 #include "tpd.h"
 
 //#ifdef VELOCITY_CUSTOM
+#include <linux/slab.h>
 #include <linux/device.h>
 #include <linux/miscdevice.h>
+#include <linux/device.h>
+#include <linux/slab.h>
 #include <asm/uaccess.h>
 
 // for magnify velocity********************************************
@@ -33,6 +36,8 @@
 
 extern int tpd_v_magnify_x;
 extern int tpd_v_magnify_y;
+extern UINT32 DISP_GetScreenHeight(void);
+extern UINT32 DISP_GetScreenWidth(void);
 
 static int tpd_misc_open(struct inode *inode, struct file *file)
 {
@@ -196,11 +201,6 @@ int tpd_driver_add(struct tpd_driver_t *tpd_drv)
 			tpd_driver_list[0].suspend = tpd_drv->suspend;
 			tpd_driver_list[0].resume = tpd_drv->resume;
 			tpd_driver_list[0].tpd_have_button = tpd_drv->tpd_have_button;
-            
-            //LINE<JIRA_ID><DATE20130422><add multi tp>zenghaihui
-            tpd_driver_list[0].tpd_get_fw_version = NULL;
-            tpd_driver_list[0].tpd_get_fw_vendor_name = NULL;
-            
 			return 0;
 	}
 	for(i = 1; i < TP_DRV_MAX_COUNT; i++)
@@ -213,11 +213,7 @@ int tpd_driver_add(struct tpd_driver_t *tpd_drv)
 			tpd_driver_list[i].suspend = tpd_drv->suspend;
 			tpd_driver_list[i].resume = tpd_drv->resume;
 			tpd_driver_list[i].tpd_have_button = tpd_drv->tpd_have_button;
-            
-            //LINE<JIRA_ID><DATE20130422><add multi tp>zenghaihui
-            tpd_driver_list[i].tpd_get_fw_version = tpd_drv->tpd_get_fw_version;;
-            tpd_driver_list[i].tpd_get_fw_vendor_name = tpd_drv->tpd_get_fw_vendor_name;;
-            
+			tpd_driver_list[i].attrs = tpd_drv->attrs;
 			#if 0
 			if(tpd_drv->tpd_local_init()==0)
 			{
@@ -256,55 +252,13 @@ int tpd_driver_remove(struct tpd_driver_t *tpd_drv)
 	return 0;
 }
 
-#if 1 // defined (TINNO_ANDROID_S8121) || (TINNO_ANDROID_S9091)
-char tpd_desc[50];
-int tpd_fw_version = 0;
-extern int get_fw_version_ext(void);
-static ssize_t tpd_fw_version_show(struct device *dev,
-					struct device_attribute *attr,
-					char *buf)
+static void tpd_create_attributes(struct device *dev, struct tpd_attrs *attrs)
 {
-    if( g_tpd_drv && g_tpd_drv->tpd_get_fw_version )
-    {
-        return sprintf(buf, "%x", g_tpd_drv->tpd_get_fw_version());
-    }
+	int num = attrs->num;
 
-    return 0;
-
+	for (; num>0;)
+		device_create_file(dev, attrs->attr[--num]);
 }
-static DEVICE_ATTR(tpd_fw_version, 0444, tpd_fw_version_show, NULL);
-
-static ssize_t tpd_fw_vendor_info_show(struct device *dev,
-					struct device_attribute *attr,
-					char *buf)
-{
-    char  vl_fw_vendor_name[256] ={ 0};
-
-    if( g_tpd_drv && g_tpd_drv->tpd_get_fw_vendor_name )
-    {
-        g_tpd_drv->tpd_get_fw_vendor_name(vl_fw_vendor_name);
-    }
-
-    return sprintf(buf, "%s", vl_fw_vendor_name);
-
-}
-static DEVICE_ATTR(tpd_fw_vendor_info, 0444, tpd_fw_vendor_info_show, NULL);
-
-
-static ssize_t tpd_fw_chip_info_show(struct device *dev,
-					struct device_attribute *attr,
-					char *buf)
-{
-    if( g_tpd_drv )
-    {
-	return sprintf(buf, "%s", g_tpd_drv->tpd_device_name);
-    }
-
-    return 0;
-    
-}
-static DEVICE_ATTR(tpd_fw_chip_info, 0444, tpd_fw_chip_info_show, NULL);
-#endif
 
 /* touch panel probe */
 static int tpd_probe(struct platform_device *pdev) {
@@ -340,8 +294,11 @@ static int tpd_probe(struct platform_device *pdev) {
     /* allocate input device */
     if((tpd->dev=input_allocate_device())==NULL) { kfree(tpd); return -ENOMEM; }
   
-    TPD_RES_X = simple_strtoul(LCM_WIDTH, NULL, 0);
-    TPD_RES_Y = simple_strtoul(LCM_HEIGHT, NULL, 0);
+  //TPD_RES_X = simple_strtoul(LCM_WIDTH, NULL, 0);
+  //TPD_RES_Y = simple_strtoul(LCM_HEIGHT, NULL, 0);    
+    TPD_RES_X = DISP_GetScreenWidth();
+    TPD_RES_Y = DISP_GetScreenHeight();
+
   
     printk("mtk_tpd: TPD_RES_X = %d, TPD_RES_Y = %d\n", TPD_RES_X, TPD_RES_Y);
   
@@ -395,12 +352,7 @@ static int tpd_probe(struct platform_device *pdev) {
 //#ifdef TPD_TYPE_CAPACITIVE
 		/* TPD_TYPE_CAPACITIVE handle */
 		if(touch_type == 1){
-#if 0 // defined (TINNO_ANDROID_S8121) || (TINNO_ANDROID_S9091)
-		set_bit(ABS_MT_PRESSURE, tpd->dev->absbit);
-		set_bit(ABS_MT_WIDTH_MAJOR, tpd->dev->absbit);
-		set_bit(ABS_MT_WIDTH_MINOR, tpd->dev->absbit);
-		set_bit(ABS_MT_TOUCH_MINOR, tpd->dev->absbit);
-#endif
+			
 		set_bit(ABS_MT_TRACKING_ID, tpd->dev->absbit);
     	set_bit(ABS_MT_TOUCH_MAJOR, tpd->dev->absbit);
     	set_bit(ABS_MT_TOUCH_MINOR, tpd->dev->absbit);
@@ -416,16 +368,8 @@ static int tpd_probe(struct platform_device *pdev) {
 #else
 		input_set_abs_params(tpd->dev, ABS_MT_POSITION_X, 0, TPD_RES_X, 0, 0);
 		input_set_abs_params(tpd->dev, ABS_MT_POSITION_Y, 0, TPD_RES_Y, 0, 0);
-#if 0 // defined (TINNO_ANDROID_S8121) || (TINNO_ANDROID_S9091)
-		input_set_abs_params(tpd->dev, ABS_MT_TOUCH_MAJOR, 0, 112, 0, 0);
-		input_set_abs_params(tpd->dev, ABS_MT_TOUCH_MINOR, 0, 112, 0, 0); 	
-		input_set_abs_params(tpd->dev, ABS_MT_WIDTH_MAJOR, 0, 112, 0, 0);
-		input_set_abs_params(tpd->dev, ABS_MT_WIDTH_MINOR, 0, 112, 0, 0);
-		input_set_abs_params(tpd->dev, ABS_MT_PRESSURE, 0, 112, 0, 0); 	
-#else
 		input_set_abs_params(tpd->dev, ABS_MT_TOUCH_MAJOR, 0, 100, 0, 0);
 		input_set_abs_params(tpd->dev, ABS_MT_TOUCH_MINOR, 0, 100, 0, 0); 	
-#endif
 #endif
     	TPD_DMESG("Cap touch panel driver\n");
   	}
@@ -461,32 +405,15 @@ static int tpd_probe(struct platform_device *pdev) {
     {
     	tpd_button_init();
     }
-#if 1 // defined (TINNO_ANDROID_S8121) || (TINNO_ANDROID_S9091)
-	if(device_create_file(&pdev->dev, &dev_attr_tpd_fw_version)) {
-		TPD_DMESG("create fw_version file error--Liu\n");
-	}
-	if(device_create_file(&pdev->dev, &dev_attr_tpd_fw_vendor_info)) {
-		TPD_DMESG("create touch_info file error--Liu\n");
-	}
-	if(device_create_file(&pdev->dev, &dev_attr_tpd_fw_chip_info)) {
-		TPD_DMESG("create touch_info file error--Liu\n");
-	}
-#endif
+
+	if (g_tpd_drv->attrs.num)
+		tpd_create_attributes(&pdev->dev, &g_tpd_drv->attrs);
+
     return 0;
 }
 
 static int tpd_remove(struct platform_device *pdev)
 {
-#if 1 // defined (TINNO_ANDROID_S8121) || (TINNO_ANDROID_S9091)
-
-    device_remove_file(&pdev->dev, &dev_attr_tpd_fw_chip_info);
-
-    device_remove_file(&pdev->dev, &dev_attr_tpd_fw_vendor_info);
-
-    device_remove_file(&pdev->dev, &dev_attr_tpd_fw_version);
-
-#endif
-    
 	   input_unregister_device(tpd->dev);
     #ifdef CONFIG_HAS_EARLYSUSPEND
     unregister_early_suspend(&MTK_TS_early_suspend_handler);

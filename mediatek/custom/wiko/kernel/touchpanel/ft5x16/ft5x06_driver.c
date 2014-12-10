@@ -49,13 +49,15 @@
 extern struct tpd_device *tpd;
  
 static DECLARE_WAIT_QUEUE_HEAD(waiter);
-static int s2w_st_flag=0; //s2w
+#ifdef CONFIG_TOUCHSCREEN_SWEEP2WAKE
+static int s2w_st_flag=0;
+#endif
 static void tpd_eint_interrupt_handler(void);
- extern void mt65xx_eint_unmask(unsigned int line);
- extern void mt65xx_eint_mask(unsigned int line);
- extern void mt65xx_eint_set_hw_debounce(kal_uint8 eintno, kal_uint32 ms);
- extern kal_uint32 mt65xx_eint_set_sens(kal_uint8 eintno, kal_bool sens);
- extern void mt65xx_eint_registration(kal_uint8 eintno, kal_bool Dbounce_En,
+extern void mt65xx_eint_unmask(unsigned int line);
+extern void mt65xx_eint_mask(unsigned int line);
+extern void mt65xx_eint_set_hw_debounce(kal_uint8 eintno, kal_uint32 ms);
+extern kal_uint32 mt65xx_eint_set_sens(kal_uint8 eintno, kal_bool sens);
+extern void mt65xx_eint_registration(kal_uint8 eintno, kal_bool Dbounce_En,
 									  kal_bool ACT_Polarity, void (EINT_FUNC_PTR)(void),
 									  kal_bool auto_umask);
 static int __devinit tpd_probe(struct i2c_client *client, const struct i2c_device_id *id);
@@ -112,26 +114,10 @@ static tinno_ts_data *g_pts = NULL;
 static volatile	int tpd_flag;
 
 #define DRIVER_NAME "ft5316"
-
-//LINE<JIRA_ID><DATE20130101><BUG_INFO>zenghaihui
-//char tpd_desc[50];
-//int tpd_fw_version;
-
-//LINE <S8111B & S8201 TP> <DATE20121220> <S8111B & S8201 TP> zhangxiaofei
 #define GPIO_CTP_WAKE_PIN 0xff			//GPIO_CTP_EN_PIN      //GPIO187
 
 static const struct i2c_device_id ft5x06_tpd_id[] = {{DRIVER_NAME,0},{}};
 
-/* This is not use after Android 4.0
-static const struct i2c_device_id tpd_id[] = {{TPD_DEVICE,0},{}};
-unsigned short force[] = {TPD_I2C_GROUP_ID, TPD_I2C_SLAVE_ADDR2, I2C_CLIENT_END, I2C_CLIENT_END}; 
-static const unsigned short * const forces[] = { force, NULL };
-static struct i2c_client_address_data addr_data = { 
-	.forces = forces, 
-};
-*/
-
-//BEGIN <S8111B & S8201 TP> <DATE20121220> <S8111B & S8201 TP> zhangxiaofei
 	static struct i2c_board_info __initdata ft5x06_i2c_tpd[]={ 
 					{I2C_BOARD_INFO(DRIVER_NAME, TPD_I2C_SLAVE_ADDR2)},
 					{I2C_BOARD_INFO(DRIVER_NAME, TPD_I2C_SLAVE_ADDR1)}
@@ -159,10 +145,9 @@ static  void tpd_down(tinno_ts_data *ts, int x, int y, int pressure, int trackID
 	input_report_abs(tpd->dev, ABS_MT_POSITION_X, x);
 	input_report_abs(tpd->dev, ABS_MT_POSITION_Y, y);
 
-       printk("[SWEEP2WAKE]: tpd down\n");
 #ifdef CONFIG_TOUCHSCREEN_SWEEP2WAKE
 		if (sweep2wake) {
-printk("[SWEEP2WAKE]: detecting sweep\n");
+//printk("[SWEEP2WAKE]: detecting sweep\n");
 			detect_sweep2wake(x, y, jiffies, trackID);
 		}
 #endif
@@ -186,16 +171,10 @@ printk("[SWEEP2WAKE]: detecting sweep\n");
 static  int tpd_up(tinno_ts_data *ts, int x, int y, int pressure, int trackID) 
 {
         CTP_DBG("x=%03d, y=%03d, ID=%03d", x, y, trackID);
-        //input_report_abs(tpd->dev, ABS_PRESSURE, 0);
         input_report_key(tpd->dev, BTN_TOUCH, 0);
-        //input_report_abs(tpd->dev, ABS_MT_TOUCH_MAJOR, 0);
-        //input_report_abs(tpd->dev, ABS_MT_POSITION_X, x);
-        //input_report_abs(tpd->dev, ABS_MT_POSITION_Y, y);
-        //input_report_abs(tpd->dev, ABS_MT_TRACKING_ID, trackID);
         input_mt_sync(tpd->dev);
         __clear_bit(trackID, &ts->fingers_flag);
 
-printk("[SWEEP2WAKE]: inside tpd up\n");
 #ifdef CONFIG_TOUCHSCREEN_SWEEP2WAKE
 s2w_st_flag = 0;
 				if (sweep2wake > 0) {
@@ -297,12 +276,6 @@ printk("[SWEEP2WAKE]: detecting d2w\n");
 	    ret = i2c_master_send(ts->client,&start_reg,1);
 	    ret = i2c_master_recv(ts->client, &ts->buffer[27], 4);
 	} 
-//	ret = i2c_master_recv(i2c_client, &buffer[0],8 );
-	//ret = i2c_master_recv(i2c_client, &buffer[8],8 );	
-	//ret = i2c_master_recv(i2c_client, &buffer[16],8 );	
-	//ret = i2c_master_recv(i2c_client, &buffer[24],8 );	
-	//ret = i2c_master_recv(i2c_client, &buffer[32],1 );	
-	
 
 	mutex_unlock(&g_pts->mutex);
 
@@ -462,7 +435,6 @@ printk("[SWEEP2WAKE]: detecting d2w\n");
                 #if 1
 			if(ts->pcount > 0)
 			{
-                           s2w_st_flag = ts->pcount;
 				for ( i=0; i < ts->pcount; i++ )
 				{
 					tpd_down(ts, touch_point[i].x, touch_point[i].y, touch_point[i].pressure, touch_point[i].touch_id);//<20120714><for multi-touch id>wangyanhui
@@ -556,7 +528,6 @@ printk("[SWEEP2WAKE]: inside single touch\n");
 	return false;
 }
 #endif
-
 
 static void fts_5x06_hw_init(void)
 {
@@ -689,7 +660,7 @@ static char *fts_get_vendor_name(int vendor_id)
 	mt65xx_eint_unmask(CUST_EINT_TOUCH_PANEL_NUM); 
 	
 	CTP_DBG("Touch Panel Device(%s) Probe PASS\n", fts_get_vendor_name(panel_vendor));
-//#if defined (TINNO_ANDROID_S9091) || defined (TINNO_ANDROID_S8121) || defined(TINNO_ANDROID_S8111B)
+/*/#if defined (TINNO_ANDROID_S9091) || defined (TINNO_ANDROID_S8121) || defined(TINNO_ANDROID_S8111B)
 #if 1
 {
 	extern char tpd_desc[50];
@@ -699,7 +670,7 @@ static char *fts_get_vendor_name(int vendor_id)
 }
 #endif
 
-//LINE<JIRA_ID><DATE20130402><add for focaltech debug>zenghaihui
+//LINE<JIRA_ID><DATE20130402><add for focaltech debug>zenghaihui*/
 #ifdef FTS_CTL_IIC
         if (ft_rw_iic_drv_init(client) < 0)
             dev_err(&client->dev, "%s:[FTS] create fts control iic driver failed\n",
@@ -816,6 +787,7 @@ static void tpd_suspend(struct early_suspend *h)
 	int ret = 0;
 	int iRetry = 5;
 	const char data = 0x3;
+
 #ifdef CONFIG_TOUCHSCREEN_SWEEP2WAKE
 	scr_suspended = true;
 printk("[SWEEP2WAKE]: early suspernd\n");
@@ -890,20 +862,6 @@ printk("[SWEEP2WAKE]: early suspernd\n");
 }
 
 
-//LINE<JIRA_ID><DATE20130422><add multi tp>zenghaihui
-extern int get_fw_version_ext(void);
-extern char tpd_desc[50];
-int ft5x06_tpd_get_fw_version( void )
-{
-    return get_fw_version_ext();
-}
-
-void ft5x06_tpd_get_fw_vendor_name(char * fw_vendor_name)
-{
-    sprintf(fw_vendor_name, "%s", tpd_desc);
-}
-
- 
  static struct tpd_driver_t tpd_device_driver = {
 	.tpd_device_name = DRIVER_NAME,
 	.tpd_local_init = tpd_local_init,
@@ -913,10 +871,7 @@ void ft5x06_tpd_get_fw_vendor_name(char * fw_vendor_name)
 	.tpd_have_button = 1,
 #else
 	.tpd_have_button = 0,
-#endif	
-    //LINE<JIRA_ID><DATE20130422><add multi tp>zenghaihui
-    .tpd_get_fw_version = ft5x06_tpd_get_fw_version,
-    .tpd_get_fw_vendor_name = ft5x06_tpd_get_fw_vendor_name,
+#endif		
  };
  
  /* called when loaded into kernel */

@@ -49,7 +49,7 @@ extern kal_uint8 g_need_refresh_tp_flag;
 static struct i2c_client *g_i2c_client = NULL;
 static int g_tpd_fw_vendor = 0;
 static int g_tpd_tpid = 0xff;
-extern int tpd_fw_version;
+extern int tpd_fw_version = 0;
 #endif
 
 static int fts_i2c_read_a_byte_data(struct i2c_client *client, char reg)
@@ -798,7 +798,7 @@ int ft6x06_Enter_Debug(void)
 	CTP_DBG("reset high");
 
 	//return ft6x06_Lib_Enter_Download_Mode();
-	return ft5x16_Lib_Enter_Download_Mode();
+	//return ft5x16_Lib_Enter_Download_Mode();
 }
 //if return 0, main flash is ok, else download.
 int ft6x06_IsDownloadMain(void)
@@ -828,10 +828,10 @@ int ft6x06_DownloadMain(void)
 	fwlen = sizeof(CTPM_MAIN_FW);
 	pr_info("----fwlen=%d\n", fwlen);
 
-    SetFtsPacketLen(2);
+   // SetFtsPacketLen(2);
     
 	//return ft6x06_Lib_DownloadMain(CTPM_MAIN_FW, fwlen);
-	return ft5x16_Lib_DownloadMain(CTPM_MAIN_FW, fwlen);
+	//return ft5x16_Lib_DownloadMain(CTPM_MAIN_FW, fwlen);
 }
 
 

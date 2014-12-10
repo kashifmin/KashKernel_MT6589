@@ -338,7 +338,7 @@ static ssize_t fts_bin_write_block(uint8_t* pbt_buf, int dw_lenth)
 
 int fts_i2c_write_block( u8 *txbuf, int len )
 {
-//LINE<JIRA_ID><DATE20130418><jiemian V12 tp upgrade problem>zenghaihui
+/*/LINE<JIRA_ID><DATE20130418><jiemian V12 tp upgrade problem>zenghaihui
 #ifdef FT6X06_DOWNLOAD
 
 if((ft6x06_IsDownloadMain() > 0)
@@ -385,7 +385,7 @@ if((ft6x06_IsDownloadMain() > 0)
     return ret;
 }
 else
-#endif
+#endif */
 {
 
     int ret = fts_bin_write_block_no_dma(txbuf, len);
